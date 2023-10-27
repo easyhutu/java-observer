@@ -1,21 +1,19 @@
-import javalang
+import os
+from javaObserver.model.inside import InsideTree
 
 
-def loadAst(filepath):
+def loadAst(project: str):
     """
-
-    :return:
+    :return: List[InsideTree]
     """
-    with open(filepath, encoding='u8') as f:
-        data = f.read()
-    # print(data)
-    tree = javalang.parse.parse(data)
-    for path, node in tree:
-        print(path)
-        print(node)
-        print('-' * 100)
-    return tree
+    asts = []
+    for root, dirs, files in os.walk(project):
+        for file in files:
+            if file.endswith('.java'):
+                filePath = os.path.join(root, file)
+                asts.append(InsideTree(filePath))
+    return asts
 
 
 if __name__ == '__main__':
-    fileData = loadAst("")
+    pass
