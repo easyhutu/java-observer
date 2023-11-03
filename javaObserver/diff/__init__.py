@@ -2,6 +2,7 @@ import git
 from git.diff import DiffIndex
 from javalang.tree import MethodDeclaration
 from javaObserver.log import logger
+import difflib
 
 defaultBranch = 'master'
 
@@ -14,13 +15,15 @@ class RepoDiff:
 
     @property
     def diffIndex(self):
+        """基于a分支-对比b分支
+        通常aBranchName=master，bBranchName=当前开发分支
+        """
         assert self.aBranch and self.bBranch
-        return self.bBranch.commit.diff(self.aBranch.commit)
+        return self.aBranch.commit.diff(self.bBranch.commit)
 
     def _with_branch(self, branchName):
         refs = self.repo.references
         for branch in refs:
-            print(branch)
             if branch.name == branchName:
                 logger.info(f'find branch {branchName}')
                 return branch
@@ -31,19 +34,30 @@ class RepoDiff:
         for df in self.diffIndex:
             print('*' * 100)
             print(df.a_path)
-            self._withDiffBlobData(df.a_blob.data_stream.read().decode('u8'), df.b_blob.data_stream.read().decode('u8'))
+            acontent = df.a_blob.data_stream.read().decode('u8')
+            bcontent = df.b_blob.data_stream.read().decode('u8')
+
+            oneContent = ''
+            start = None
+            end = None
+            for diff in difflib.unified_diff(acontent.split('\n'), bcontent.split('\n')):
+                oneContent += diff + '\n'
+            spC = oneContent.split("@@")[1:]
+            for c in range(0, len(spC), 2):
+                print(spC[c], self.parseDiffPosition(spC[c]))
 
     @staticmethod
-    def _withDiffBlobData(a: str, b: str):
-        al = a.split('\n')
-        bl = b.split('\n')
-        index = 0
-        while index < len(al) and index < len(bl):
-            if al[index] != bl[index]:
-                print(al[index])
-                print(bl[index])
-                print("-" * 100)
-            index += 1
+    def parseDiffPosition(diff: str):
+        a, b, c, d = 0, 0, 0, 0
+        z = diff.strip().split(' ')
+        z0 = z[0]
+        z1 = z[1]
+        if z0.startswith('-'):
+            a, b = z0.replace('-', '').split(',')
+        if z1.startswith('+'):
+            c, d = z1.replace('+', '').split(',')
+
+        return int(a), int(c)
 
 
 if __name__ == '__main__':
